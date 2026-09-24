@@ -6,202 +6,416 @@
 <meta name="theme-color" content="#0b0d10">
 <title>IPA Explorer</title>
 <style>
-:root{color-scheme:dark;--bg:#0b0d10;--panel:#141820;--line:#29303a;--text:#f2f4f7;--muted:#9da6b2;--accent:#6ea8fe}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
-main{max-width:980px;margin:auto;padding:28px 16px 60px}
-h1{margin:0 0 7px;font-size:30px}.sub{color:var(--muted);margin:0 0 22px}
-.drop{border:1.5px dashed #56606d;border-radius:18px;padding:28px;text-align:center;background:var(--panel);cursor:pointer}
-.drop.drag{border-color:var(--accent);background:#182131}.drop input{display:none}
-.btn{display:inline-block;border:0;border-radius:12px;background:#fff;color:#111;padding:12px 17px;font-weight:700;cursor:pointer}
-#status{margin:16px 0;color:var(--muted)}
-.toolbar{display:none;gap:10px;flex-wrap:wrap;margin:15px 0}
-.toolbar input{flex:1;min-width:220px;background:var(--panel);border:1px solid var(--line);border-radius:11px;color:var(--text);padding:11px}
-.panel{display:none;background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
-.row{display:flex;align-items:center;gap:10px;padding:10px 13px;border-bottom:1px solid var(--line)}
-.row:last-child{border-bottom:0}.icon{width:24px;text-align:center}.name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.meta{color:var(--muted);font-size:12px}
-.row button{background:#252c35;border:0;color:#fff;border-radius:8px;padding:7px 9px;cursor:pointer}
-.info{display:none;margin-top:16px;padding:16px;background:var(--panel);border:1px solid var(--line);border-radius:16px}
-pre{white-space:pre-wrap;word-break:break-word;margin:8px 0 0;max-height:360px;overflow:auto;color:#d8dee7}
-.small{font-size:13px;color:var(--muted);line-height:1.55}
-@media(max-width:600px){main{padding-top:20px}.drop{padding:22px 14px}.meta{display:none}}
+*{box-sizing:border-box}
+body{margin:0;background:#0b0d10;color:#f4f5f7;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
+main{width:min(960px,100%);margin:auto;padding:28px 18px 70px}
+h1{font-size:38px;margin:0 0 8px}
+.desc{color:#aeb5c0;font-size:18px;margin:0 0 22px;line-height:1.5}
+.drop{position:relative;border:2px dashed #505966;border-radius:20px;background:#13171e;min-height:220px;padding:30px 18px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;overflow:hidden}
+.drop.drag{border-color:#79aaff;background:#182131}
+.drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
+.box{font-size:54px;margin-bottom:8px}
+.title{font-size:24px;font-weight:800}
+.hint{color:#9ea6b2;margin-top:10px}
+.status{margin:18px 0;padding:13px 15px;border-radius:12px;background:#141922;color:#cbd2dc;display:none;white-space:pre-wrap}
+.status.error{color:#ffb4b4}
+.tools{display:none;gap:10px;flex-wrap:wrap;margin:15px 0}
+.search{flex:1;min-width:210px;background:#141922;border:1px solid #303744;color:#fff;border-radius:11px;padding:12px}
+.btn{border:0;border-radius:11px;padding:11px 15px;background:#fff;color:#111;font-weight:700;cursor:pointer}
+.btn.secondary{background:#252c35;color:#fff}
+.panel{display:none;background:#141922;border:1px solid #2c333e;border-radius:15px;overflow:hidden}
+.row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #282f39;min-height:47px}
+.icon{width:25px;text-align:center}.name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.meta{font-size:12px;color:#9ea6b2}
+.row button{border:0;background:#252c35;color:#fff;border-radius:8px;padding:7px 9px}
+.info{display:none;margin:15px 0;padding:15px;background:#141922;border:1px solid #2c333e;border-radius:15px}
+pre{white-space:pre-wrap;word-break:break-word;max-height:420px;overflow:auto}
+img.preview{max-width:100%;max-height:430px;margin-top:10px;border-radius:10px}
+@media(max-width:600px){main{padding:20px 12px 50px}h1{font-size:31px}.desc{font-size:16px}.drop{min-height:190px}}
 </style>
 </head>
 <body>
 <main>
 <h1>📦 IPA Explorer</h1>
-<p class="sub">IPAをブラウザ内で展開して、中身を確認・保存できます。</p>
+<p class="desc">IPAをブラウザ内で展開して、中身を確認・保存できます。</p>
 
-<label class="drop" id="drop">
-  <input id="file" type="file" accept=".ipa,.zip,application/zip">
-  <div style="font-size:42px">📦</div>
-  <div style="margin:8px 0 14px;font-weight:700">IPAファイルを選択</div>
-  <span class="btn">ファイルを開く</span>
-  <div class="small" style="margin-top:12px">ファイルはサーバーへアップロードせず、このブラウザ内で処理します。</div>
-</label>
-
-<div id="status"></div>
-<div class="toolbar" id="toolbar">
-  <input id="search" placeholder="ファイル名を検索…">
-  <button class="btn" id="downloadAll">展開内容をZIPで保存</button>
+<div class="drop" id="drop">
+  <input id="file" type="file" accept=".ipa,.zip,application/zip,application/octet-stream">
+  <div class="box">📦</div>
+  <div class="title">IPAファイルを選択</div>
+  <div class="hint">タップして「ファイル」からIPAを選択</div>
 </div>
-<div class="panel" id="list"></div>
-<div class="info" id="info"></div>
+
+<div id="status" class="status"></div>
+
+<div id="tools" class="tools">
+  <input id="search" class="search" placeholder="ファイル名を検索">
+  <button id="downloadZip" class="btn">展開内容をZIP保存</button>
+</div>
+
+<div id="appInfo" class="info"></div>
+<div id="list" class="panel"></div>
+<div id="preview" class="info"></div>
 </main>
 
+<!-- JSZip: ZIP/IPAをブラウザ内で読むために使用 -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>
-const fileInput=document.getElementById('file');
-const drop=document.getElementById('drop');
-const statusEl=document.getElementById('status');
-const toolbar=document.getElementById('toolbar');
-const list=document.getElementById('list');
-const search=document.getElementById('search');
-const info=document.getElementById('info');
-let zip=null, entries=[];
+(function(){
+  "use strict";
 
-drop.addEventListener('click',e=>{if(e.target.tagName!=='BUTTON') fileInput.click()});
-drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag')});
-drop.addEventListener('dragleave',()=>drop.classList.remove('drag'));
-drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag');if(e.dataTransfer.files[0]) loadIPA(e.dataTransfer.files[0])});
-fileInput.addEventListener('change',()=>fileInput.files[0]&&loadIPA(fileInput.files[0]));
-search.addEventListener('input',render);
+  const $ = id => document.getElementById(id);
+  const fileInput = $("file");
+  const drop = $("drop");
+  const status = $("status");
+  const tools = $("tools");
+  const list = $("list");
+  const search = $("search");
+  const appInfo = $("appInfo");
+  const preview = $("preview");
+  const downloadZip = $("downloadZip");
 
-function fmt(n){if(n<1024)return n+' B';if(n<1048576)return (n/1024).toFixed(1)+' KB';return (n/1048576).toFixed(1)+' MB'}
+  let currentFile = null;
+  let zip = null;
+  let entries = [];
 
-async function loadIPA(file){
-  try{
-    statusEl.textContent='読み込み中…';
-    zip=await JSZip.loadAsync(file);
-    entries=Object.values(zip.files).map(x=>({name:x.name,dir:x.dir,obj:x,size:x._data&&x._data.uncompressedSize||0}))
-      .sort((a,b)=>a.name.localeCompare(b.name));
-    toolbar.style.display='flex';list.style.display='block';info.style.display='none';
-    statusEl.textContent=`${file.name} — ${entries.length} 件`;
-    render();
-    await showAppInfo();
-  }catch(e){statusEl.textContent='IPAを読み込めませんでした。ZIP形式のIPAか確認してください。'}
-}
+  function setStatus(message, error){
+    status.style.display = "block";
+    status.textContent = message;
+    status.className = "status" + (error ? " error" : "");
+  }
 
-function render(){
-  const q=search.value.toLowerCase();
-  list.innerHTML='';
-  entries.filter(e=>e.name.toLowerCase().includes(q)).slice(0,3000).forEach(e=>{
-    const row=document.createElement('div');row.className='row';
-    const icon=document.createElement('div');icon.className='icon';icon.textContent=e.dir?'📁':'📄';
-    const name=document.createElement('div');name.className='name';name.textContent=e.name;
-    const meta=document.createElement('div');meta.className='meta';meta.textContent=e.dir?'':fmt(e.size);
-    row.append(icon,name,meta);
-    if(!e.dir){
-      const view=document.createElement('button');view.textContent='表示';view.onclick=()=>preview(e);
-      const dl=document.createElement('button');dl.textContent='保存';dl.onclick=()=>downloadEntry(e);
-      row.append(view,dl);
+  function fmt(n){
+    if(!Number.isFinite(n)) return "";
+    if(n < 1024) return n + " B";
+    if(n < 1024*1024) return (n/1024).toFixed(1) + " KB";
+    return (n/1024/1024).toFixed(1) + " MB";
+  }
+
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, c => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+  }
+
+  // Important for iPhone Safari: the input itself covers the drop area.
+  fileInput.addEventListener("change", function(){
+    if(this.files && this.files.length){
+      openIPA(this.files[0]);
     }
-    list.appendChild(row);
   });
-  if(entries.filter(e=>e.name.toLowerCase().includes(q)).length>3000){
-    const more=document.createElement('div');more.className='row';more.textContent='表示件数を3000件に制限しています。検索してください。';list.appendChild(more);
-  }
-}
 
-async function downloadEntry(e){
-  const blob=await e.obj.async('blob');
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=e.name.split('/').pop()||'file';
-  a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-}
+  ["dragenter","dragover"].forEach(type => drop.addEventListener(type, e => {
+    e.preventDefault(); e.stopPropagation(); drop.classList.add("drag");
+  }));
+  ["dragleave","drop"].forEach(type => drop.addEventListener(type, e => {
+    e.preventDefault(); e.stopPropagation(); drop.classList.remove("drag");
+  }));
+  drop.addEventListener("drop", e => {
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if(f) openIPA(f);
+  });
 
-async function preview(e){
-  const lower=e.name.toLowerCase();
-  info.style.display='block';
-  info.innerHTML='<b>'+escapeHtml(e.name)+'</b><div class="small">読み込み中…</div>';
-  if(/\.(png|jpe?g|gif|webp|svg)$/i.test(lower)){
-    const blob=await e.obj.async('blob');const url=URL.createObjectURL(blob);
-    info.innerHTML='<b>'+escapeHtml(e.name)+'</b><br><img src="'+url+'" style="max-width:100%;max-height:420px;margin-top:12px;border-radius:10px">';
-  }else if(/\.(txt|json|xml|plist|strings|csv|md|js|css|html)$/i.test(lower)){
-    const text=await e.obj.async('text');
-    info.innerHTML='<b>'+escapeHtml(e.name)+'</b><pre>'+escapeHtml(text.slice(0,50000))+'</pre>';
-  }else{
-    info.innerHTML='<b>'+escapeHtml(e.name)+'</b><div class="small" style="margin-top:8px">このファイル形式はプレビューできません。保存ボタンから取り出せます。</div>';
-  }
-  info.scrollIntoView({behavior:'smooth',block:'nearest'});
-}
+  async function openIPA(file){
+    currentFile = file;
+    setStatus("📦 " + file.name + "\n読み込み中…");
+    tools.style.display = "none";
+    list.style.display = "none";
+    appInfo.style.display = "none";
+    preview.style.display = "none";
 
-function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-
-
-async function showAppInfo(){
-  const candidates = entries.filter(e=>/\/Info\.plist$/i.test(e.name));
-  if(!candidates.length) return;
-  const e=candidates[0];
-  try{
-    const blob=await e.obj.async('blob');
-    const buf=await blob.arrayBuffer();
-    const bytes=new Uint8Array(buf);
-    let text='';
-    // Binary plist ("bplist00") parser for common scalar/string/dictionary cases.
-    if(new TextDecoder().decode(bytes.slice(0,8))==='bplist00'){
-      text=parseBinaryPlist(bytes);
-    }else{
-      text=new TextDecoder('utf-8').decode(bytes);
+    if(!window.JSZip){
+      setStatus(
+        "ZIPライブラリを読み込めませんでした。\n" +
+        "Safariのコンテンツブロッカー等を一時的に無効にするか、ページを再読み込みしてください。",
+        true
+      );
+      return;
     }
-    const get=(key)=>{
-      const re=new RegExp('<key>'+key.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'<\\/key>\\s*<([^>]+)>([\\s\\S]*?)<\\/\\1>');
-      const m=text.match(re); return m ? m[2].replace(/<!\\[CDATA\\[|\\]\\]>/g,'').trim() : '';
-    };
-    const app=get('CFBundleDisplayName')||get('CFBundleName')||get('CFBundleExecutable');
-    const id=get('CFBundleIdentifier');
-    const ver=get('CFBundleShortVersionString')||get('CFBundleVersion');
-    const build=get('CFBundleVersion');
-    const min=get('MinimumOSVersion');
-    const device=get('UIDeviceFamily');
-    const rows=[
-      ['アプリ名',app],['Bundle ID',id],['バージョン',ver],
-      ['Build',build],['Minimum iOS',min],['Info.plist',e.name]
-    ].filter(x=>x[1]);
-    if(rows.length){
-      const box=document.createElement('div');
-      box.className='info'; box.style.display='block';
-      box.innerHTML='<b>📱 アプリ情報</b><div style="margin-top:10px">'+rows.map(x=>'<div class="row" style="padding:8px 0"><div class="name">'+escapeHtml(x[0])+'</div><div>'+escapeHtml(x[1])+'</div></div>').join('')+'</div>';
-      document.querySelector('main').insertBefore(box, document.getElementById('list'));
-    }
-  }catch(err){}
-}
 
-// Small bplist reader: extracts ASCII/UTF-8 strings and key/value-looking pairs.
-// It is intentionally conservative and falls back to raw extracted strings.
-function parseBinaryPlist(bytes){
-  const td=new TextDecoder('utf-8',{fatal:false});
-  const out=[];
-  let i=8;
-  while(i<bytes.length){
-    const marker=bytes[i++];
-    const type=marker>>4, info=marker&15;
-    if(type===5 || type===6 || type===1){
-      let len=1<<info;
-      if(info===15){
-        if(i>=bytes.length) break;
-        const m=bytes[i++], t=m>>4, n=m&15;
-        if(t!==1 || n>4 || i+n>bytes.length) break;
-        len=0; for(let j=0;j<n;j++) len=(len<<8)|bytes[i++];
+    try{
+      const buffer = await file.arrayBuffer();
+      zip = await JSZip.loadAsync(buffer);
+      entries = [];
+
+      zip.forEach((path, obj) => {
+        entries.push({
+          name:path,
+          dir:obj.dir,
+          obj:obj,
+          size: obj.dir ? 0 : (obj._data && obj._data.uncompressedSize) || 0
+        });
+      });
+
+      entries.sort((a,b) => a.name.localeCompare(b.name));
+      tools.style.display = "flex";
+      list.style.display = "block";
+      render();
+      await readInfoPlist();
+
+      setStatus("✅ 読み込み完了\n" + file.name + "\n" + entries.length + " 件");
+    }catch(err){
+      console.error(err);
+      setStatus(
+        "❌ IPAを開けませんでした。\n" +
+        "ファイルが壊れているか、ZIP形式ではない可能性があります。\n\n" +
+        "エラー: " + (err && err.message ? err.message : String(err)),
+        true
+      );
+    }
+  }
+
+  function render(){
+    const q = search.value.trim().toLowerCase();
+    list.innerHTML = "";
+
+    const filtered = entries.filter(e => e.name.toLowerCase().includes(q));
+    const shown = filtered.slice(0, 3000);
+
+    if(!shown.length){
+      list.innerHTML = '<div class="row">該当するファイルがありません。</div>';
+      return;
+    }
+
+    shown.forEach(e => {
+      const row = document.createElement("div");
+      row.className = "row";
+
+      const icon = document.createElement("div");
+      icon.className = "icon";
+      icon.textContent = e.dir ? "📁" : "📄";
+
+      const name = document.createElement("div");
+      name.className = "name";
+      name.textContent = e.name;
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = e.dir ? "" : fmt(e.size);
+
+      row.append(icon,name,meta);
+
+      if(!e.dir){
+        const view = document.createElement("button");
+        view.textContent = "表示";
+        view.onclick = () => previewFile(e);
+
+        const save = document.createElement("button");
+        save.textContent = "保存";
+        save.onclick = () => saveFile(e);
+
+        row.append(view,save);
       }
-      if(i+len>bytes.length) break;
+      list.appendChild(row);
+    });
+
+    if(filtered.length > shown.length){
+      const more = document.createElement("div");
+      more.className = "row";
+      more.textContent = "表示は3000件までです。検索で絞り込めます。";
+      list.appendChild(more);
+    }
+  }
+
+  search.addEventListener("input", render);
+
+  async function saveFile(e){
+    try{
+      const blob = await e.obj.async("blob");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = e.name.split("/").pop() || "file";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    }catch(err){
+      setStatus("保存に失敗しました: " + err.message, true);
+    }
+  }
+
+  async function previewFile(e){
+    preview.style.display = "block";
+    preview.innerHTML = "<b>" + esc(e.name) + "</b><div class='hint'>読み込み中…</div>";
+
+    try{
+      const lower = e.name.toLowerCase();
+
+      if(/\.(png|jpe?g|gif|webp)$/i.test(lower)){
+        const blob = await e.obj.async("blob");
+        const url = URL.createObjectURL(blob);
+        preview.innerHTML =
+          "<b>" + esc(e.name) + "</b><br>" +
+          "<img class='preview' src='" + url + "'>";
+      }else if(/\.(txt|json|xml|plist|strings|csv|md|js|css|html)$/i.test(lower)){
+        const text = await e.obj.async("text");
+        preview.innerHTML =
+          "<b>" + esc(e.name) + "</b>" +
+          "<pre>" + esc(text.slice(0,100000)) + "</pre>";
+      }else{
+        preview.innerHTML =
+          "<b>" + esc(e.name) + "</b>" +
+          "<div class='hint'>この形式はプレビューできません。「保存」で取り出せます。</div>";
+      }
+      preview.scrollIntoView({behavior:"smooth",block:"nearest"});
+    }catch(err){
+      preview.innerHTML = "<b>読み込み失敗</b><pre>" + esc(err.message) + "</pre>";
+    }
+  }
+
+  downloadZip.addEventListener("click", async () => {
+    if(!zip) return;
+    try{
+      setStatus("ZIPを作成中…");
+      const blob = await zip.generateAsync({type:"blob"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = (currentFile ? currentFile.name.replace(/\.ipa$/i,"") : "ipa") + "-extracted.zip";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      setStatus("✅ ZIPを作成しました。");
+    }catch(err){
+      setStatus("ZIP保存に失敗しました: " + err.message, true);
+    }
+  });
+
+  async function readInfoPlist(){
+    const p = entries.find(e => /(^|\/)Info\.plist$/i.test(e.name) && !e.dir);
+    if(!p) return;
+
+    try{
+      const data = new Uint8Array(await p.obj.async("uint8array"));
+      const info = parsePlist(data);
+      const keys = [
+        ["アプリ名","CFBundleDisplayName"],
+        ["Bundle ID","CFBundleIdentifier"],
+        ["バージョン","CFBundleShortVersionString"],
+        ["Build","CFBundleVersion"],
+        ["最低iOS","MinimumOSVersion"]
+      ];
+
+      const rows = keys
+        .map(([label,key]) => [label, info[key]])
+        .filter(x => x[1] !== undefined && x[1] !== "");
+
+      if(!rows.length) return;
+
+      appInfo.style.display = "block";
+      appInfo.innerHTML =
+        "<b>📱 アプリ情報</b>" +
+        rows.map(x =>
+          "<div class='row' style='padding:9px 0'>" +
+          "<div class='name'>" + esc(x[0]) + "</div>" +
+          "<div>" + esc(x[1]) + "</div></div>"
+        ).join("");
+    }catch(err){
+      console.warn("Info.plist parse failed",err);
+    }
+  }
+
+  // XML plist parser.
+  function parsePlist(bytes){
+    const head = new TextDecoder().decode(bytes.slice(0,8));
+    if(head !== "bplist00"){
+      return parseXmlPlist(new TextDecoder().decode(bytes));
+    }
+    return parseBinaryPlist(bytes);
+  }
+
+  function parseXmlPlist(text){
+    const out = {};
+    const re = /<key>([^<]+)<\/key>\s*<(string|integer|real|true|false)>([\s\S]*?)<\/\2>/g;
+    let m;
+    while((m=re.exec(text))){
+      out[m[1]] = m[2] === "true" ? true : m[2] === "false" ? false : m[3].trim();
+    }
+    return out;
+  }
+
+  // Conservative binary plist reader for the common string/integer keys.
+  // It locates the object table using the trailer and recursively decodes
+  // strings, arrays and dictionaries.
+  function parseBinaryPlist(b){
+    const dv = new DataView(b.buffer,b.byteOffset,b.byteLength);
+    const n=b.length;
+    const trailerStart=n-32;
+    const offsetIntSize=b[trailerStart+6];
+    const objRefSize=b[trailerStart+7];
+    const numObjects=readUIntBE(b,trailerStart+8,8);
+    const topObject=readUIntBE(b,trailerStart+16,8);
+    const offsetTableOffset=readUIntBE(b,trailerStart+24,8);
+    const offsets=[];
+    for(let i=0;i<numObjects;i++){
+      offsets.push(readUIntBE(b,offsetTableOffset+i*offsetIntSize,offsetIntSize));
+    }
+    const seen=new Set();
+
+    function lenAt(pos,info){
+      if(info<15) return [info,pos];
+      const marker=b[pos++], type=marker>>4, inf=marker&15;
+      if(type!==1) throw new Error("unsupported length");
+      const bytes=1<<inf;
+      const value=readUIntBE(b,pos,bytes);
+      return [value,pos+bytes];
+    }
+    function obj(id){
+      if(id<0||id>=offsets.length||seen.size>5000) return null;
+      const pos=offsets[id], marker=b[pos], type=marker>>4, inf=marker&15;
+      if(type===0) return inf===9?false:inf===8?true:null;
       if(type===5 || type===6){
-        const s=td.decode(bytes.slice(i,i+len)).replace(/[^\x20-\x7E\u00A0-\uFFFF]/g,'').trim();
-        if(s) out.push(s);
+        const [len,start]=lenAt(pos+1,inf);
+        const raw=b.slice(start,start+len);
+        if(type===5) return new TextDecoder("utf-8").decode(raw);
+        if(type===6){
+          let s="";
+          for(let i=0;i+1<raw.length;i+=2) s+=String.fromCharCode((raw[i]<<8)|raw[i+1]);
+          return s;
+        }
       }
-      i+=len;
-    }else if(type===0){continue}else{
-      // Keep scanning byte-by-byte; bplist objects are indexed elsewhere.
-      continue;
+      if(type===1){
+        const bytes=1<<inf;
+        return readUIntBE(b,pos+1,bytes);
+      }
+      if(type===8) return b[pos+1];
+      if(type===10){
+        const [len,start]=lenAt(pos+1,inf), arr=[];
+        for(let i=0;i<len;i++) arr.push(obj(readUIntBE(b,start+i*objRefSize,objRefSize)));
+        return arr;
+      }
+      if(type===12){
+        const [len,start]=lenAt(pos+1,inf), arr=[];
+        for(let i=0;i<len;i++) arr.push(obj(readUIntBE(b,start+i*objRefSize,objRefSize)));
+        return arr;
+      }
+      if(type===13){
+        const [len,start]=lenAt(pos+1,inf), keys=[],vals=[];
+        for(let i=0;i<len;i++) keys.push(readUIntBE(b,start+i*objRefSize,objRefSize));
+        const vstart=start+len*objRefSize;
+        for(let i=0;i<len;i++) vals.push(readUIntBE(b,vstart+i*objRefSize,objRefSize));
+        const d={};
+        for(let i=0;i<len;i++){
+          const k=obj(keys[i]); d[k]=obj(vals[i]);
+        }
+        return d;
+      }
+      return null;
+    }
+
+    try{
+      const root=obj(topObject);
+      return root && typeof root==="object" ? root : {};
+    }catch(e){
+      return {};
     }
   }
-  return out.join('\n');
-}
 
-document.getElementById('downloadAll').onclick=async()=>{
-  if(!zip)return;
-  const blob=await zip.generateAsync({type:'blob'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ipa-extracted.zip';a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-};
+  function readUIntBE(b,pos,len){
+    let x=0;
+    for(let i=0;i<len;i++) x=x*256+b[pos+i];
+    return x;
+  }
+})();
 </script>
 </body>
 </html>
