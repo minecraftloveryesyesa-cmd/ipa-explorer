@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0d10">
+<title>IPA Explorer</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0d10;--panel:#141820;--line:#29303a;--text:#f2f4f7;--muted:#9da6b2;--accent:#6ea8fe}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
+main{max-width:980px;margin:auto;padding:28px 16px 60px}
+h1{margin:0 0 7px;font-size:30px}.sub{color:var(--muted);margin:0 0 22px}
+.drop{border:1.5px dashed #56606d;border-radius:18px;padding:28px;text-align:center;background:var(--panel);cursor:pointer}
+.drop.drag{border-color:var(--accent);background:#182131}.drop input{display:none}
+.btn{display:inline-block;border:0;border-radius:12px;background:#fff;color:#111;padding:12px 17px;font-weight:700;cursor:pointer}
+#status{margin:16px 0;color:var(--muted)}
+.toolbar{display:none;gap:10px;flex-wrap:wrap;margin:15px 0}
+.toolbar input{flex:1;min-width:220px;background:var(--panel);border:1px solid var(--line);border-radius:11px;color:var(--text);padding:11px}
+.panel{display:none;background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.row{display:flex;align-items:center;gap:10px;padding:10px 13px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}.icon{width:24px;text-align:center}.name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.meta{color:var(--muted);font-size:12px}
+.row button{background:#252c35;border:0;color:#fff;border-radius:8px;padding:7px 9px;cursor:pointer}
+.info{display:none;margin-top:16px;padding:16px;background:var(--panel);border:1px solid var(--line);border-radius:16px}
+pre{white-space:pre-wrap;word-break:break-word;margin:8px 0 0;max-height:360px;overflow:auto;color:#d8dee7}
+.small{font-size:13px;color:var(--muted);line-height:1.55}
+@media(max-width:600px){main{padding-top:20px}.drop{padding:22px 14px}.meta{display:none}}
+</style>
+</head>
+<body>
+<main>
+<h1>📦 IPA Explorer</h1>
+<p class="sub">IPAをブラウザ内で展開して、中身を確認・保存できます。</p>
+
+<label class="drop" id="drop">
+  <input id="file" type="file" accept=".ipa,.zip,application/zip">
+  <div style="font-size:42px">📦</div>
+  <div style="margin:8px 0 14px;font-weight:700">IPAファイルを選択</div>
+  <span class="btn">ファイルを開く</span>
+  <div class="small" style="margin-top:12px">ファイルはサーバーへアップロードせず、このブラウザ内で処理します。</div>
+</label>
+
+<div id="status"></div>
+<div class="toolbar" id="toolbar">
+  <input id="search" placeholder="ファイル名を検索…">
+  <button class="btn" id="downloadAll">展開内容をZIPで保存</button>
+</div>
+<div class="panel" id="list"></div>
+<div class="info" id="info"></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script>
+const fileInput=document.getElementById('file');
+const drop=document.getElementById('drop');
+const statusEl=document.getElementById('status');
+const toolbar=document.getElementById('toolbar');
+const list=document.getElementById('list');
+const search=document.getElementById('search');
+const info=document.getElementById('info');
+let zip=null, entries=[];
+
+drop.addEventListener('click',e=>{if(e.target.tagName!=='BUTTON') fileInput.click()});
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag')});
+drop.addEventListener('dragleave',()=>drop.classList.remove('drag'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag');if(e.dataTransfer.files[0]) loadIPA(e.dataTransfer.files[0])});
+fileInput.addEventListener('change',()=>fileInput.files[0]&&loadIPA(fileInput.files[0]));
+search.addEventListener('input',render);
+
+function fmt(n){if(n<1024)return n+' B';if(n<1048576)return (n/1024).toFixed(1)+' KB';return (n/1048576).toFixed(1)+' MB'}
+
+async function loadIPA(file){
+  try{
+    statusEl.textContent='読み込み中…';
+    zip=await JSZip.loadAsync(file);
+    entries=Object.values(zip.files).map(x=>({name:x.name,dir:x.dir,obj:x,size:x._data&&x._data.uncompressedSize||0}))
+      .sort((a,b)=>a.name.localeCompare(b.name));
+    toolbar.style.display='flex';list.style.display='block';info.style.display='none';
+    statusEl.textContent=`${file.name} — ${entries.length} 件`;
+    render();
+    await showAppInfo();
+  }catch(e){statusEl.textContent='IPAを読み込めませんでした。ZIP形式のIPAか確認してください。'}
+}
+
+function render(){
+  const q=search.value.toLowerCase();
+  list.innerHTML='';
+  entries.filter(e=>e.name.toLowerCase().includes(q)).slice(0,3000).forEach(e=>{
+    const row=document.createElement('div');row.className='row';
+    const icon=document.createElement('div');icon.className='icon';icon.textContent=e.dir?'📁':'📄';
+    const name=document.createElement('div');name.className='name';name.textContent=e.name;
+    const meta=document.createElement('div');meta.className='meta';meta.textContent=e.dir?'':fmt(e.size);
+    row.append(icon,name,meta);
+    if(!e.dir){
+      const view=document.createElement('button');view.textContent='表示';view.onclick=()=>preview(e);
+      const dl=document.createElement('button');dl.textContent='保存';dl.onclick=()=>downloadEntry(e);
+      row.append(view,dl);
+    }
+    list.appendChild(row);
+  });
+  if(entries.filter(e=>e.name.toLowerCase().includes(q)).length>3000){
+    const more=document.createElement('div');more.className='row';more.textContent='表示件数を3000件に制限しています。検索してください。';list.appendChild(more);
+  }
+}
+
+async function downloadEntry(e){
+  const blob=await e.obj.async('blob');
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=e.name.split('/').pop()||'file';
+  a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+async function preview(e){
+  const lower=e.name.toLowerCase();
+  info.style.display='block';
+  info.innerHTML='<b>'+escapeHtml(e.name)+'</b><div class="small">読み込み中…</div>';
+  if(/\.(png|jpe?g|gif|webp|svg)$/i.test(lower)){
+    const blob=await e.obj.async('blob');const url=URL.createObjectURL(blob);
+    info.innerHTML='<b>'+escapeHtml(e.name)+'</b><br><img src="'+url+'" style="max-width:100%;max-height:420px;margin-top:12px;border-radius:10px">';
+  }else if(/\.(txt|json|xml|plist|strings|csv|md|js|css|html)$/i.test(lower)){
+    const text=await e.obj.async('text');
+    info.innerHTML='<b>'+escapeHtml(e.name)+'</b><pre>'+escapeHtml(text.slice(0,50000))+'</pre>';
+  }else{
+    info.innerHTML='<b>'+escapeHtml(e.name)+'</b><div class="small" style="margin-top:8px">このファイル形式はプレビューできません。保存ボタンから取り出せます。</div>';
+  }
+  info.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+
+async function showAppInfo(){
+  const candidates = entries.filter(e=>/\/Info\.plist$/i.test(e.name));
+  if(!candidates.length) return;
+  const e=candidates[0];
+  try{
+    const blob=await e.obj.async('blob');
+    const buf=await blob.arrayBuffer();
+    const bytes=new Uint8Array(buf);
+    let text='';
+    // Binary plist ("bplist00") parser for common scalar/string/dictionary cases.
+    if(new TextDecoder().decode(bytes.slice(0,8))==='bplist00'){
+      text=parseBinaryPlist(bytes);
+    }else{
+      text=new TextDecoder('utf-8').decode(bytes);
+    }
+    const get=(key)=>{
+      const re=new RegExp('<key>'+key.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'<\\/key>\\s*<([^>]+)>([\\s\\S]*?)<\\/\\1>');
+      const m=text.match(re); return m ? m[2].replace(/<!\\[CDATA\\[|\\]\\]>/g,'').trim() : '';
+    };
+    const app=get('CFBundleDisplayName')||get('CFBundleName')||get('CFBundleExecutable');
+    const id=get('CFBundleIdentifier');
+    const ver=get('CFBundleShortVersionString')||get('CFBundleVersion');
+    const build=get('CFBundleVersion');
+    const min=get('MinimumOSVersion');
+    const device=get('UIDeviceFamily');
+    const rows=[
+      ['アプリ名',app],['Bundle ID',id],['バージョン',ver],
+      ['Build',build],['Minimum iOS',min],['Info.plist',e.name]
+    ].filter(x=>x[1]);
+    if(rows.length){
+      const box=document.createElement('div');
+      box.className='info'; box.style.display='block';
+      box.innerHTML='<b>📱 アプリ情報</b><div style="margin-top:10px">'+rows.map(x=>'<div class="row" style="padding:8px 0"><div class="name">'+escapeHtml(x[0])+'</div><div>'+escapeHtml(x[1])+'</div></div>').join('')+'</div>';
+      document.querySelector('main').insertBefore(box, document.getElementById('list'));
+    }
+  }catch(err){}
+}
+
+// Small bplist reader: extracts ASCII/UTF-8 strings and key/value-looking pairs.
+// It is intentionally conservative and falls back to raw extracted strings.
+function parseBinaryPlist(bytes){
+  const td=new TextDecoder('utf-8',{fatal:false});
+  const out=[];
+  let i=8;
+  while(i<bytes.length){
+    const marker=bytes[i++];
+    const type=marker>>4, info=marker&15;
+    if(type===5 || type===6 || type===1){
+      let len=1<<info;
+      if(info===15){
+        if(i>=bytes.length) break;
+        const m=bytes[i++], t=m>>4, n=m&15;
+        if(t!==1 || n>4 || i+n>bytes.length) break;
+        len=0; for(let j=0;j<n;j++) len=(len<<8)|bytes[i++];
+      }
+      if(i+len>bytes.length) break;
+      if(type===5 || type===6){
+        const s=td.decode(bytes.slice(i,i+len)).replace(/[^\x20-\x7E\u00A0-\uFFFF]/g,'').trim();
+        if(s) out.push(s);
+      }
+      i+=len;
+    }else if(type===0){continue}else{
+      // Keep scanning byte-by-byte; bplist objects are indexed elsewhere.
+      continue;
+    }
+  }
+  return out.join('\n');
+}
+
+document.getElementById('downloadAll').onclick=async()=>{
+  if(!zip)return;
+  const blob=await zip.generateAsync({type:'blob'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ipa-extracted.zip';a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+</script>
+</body>
+</html>
