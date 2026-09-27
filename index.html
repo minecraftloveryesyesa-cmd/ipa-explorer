@@ -142,8 +142,25 @@ input.addEventListener("change",()=>{if(input.files&&input.files[0])load(input.f
 drop.addEventListener("drop",e=>{const f=e.dataTransfer?.files?.[0];if(f)load(f)});
 $("clearSearch").onclick=()=>{$("fileSearch").value="";renderTree()};
 $("fileSearch").addEventListener("input",renderTree);
-$("expandAll").onclick=()=>{opened=new Set(entries.filter(e=>e.dir).map(e=>e.path));renderTree()};
-$("collapseAll").onclick=()=>{opened.clear();renderTree()};
+// Traverse the constructed tree, including implicit directories that do not
+// appear as explicit directory entries in the ZIP central directory.
+function collectDirectoryPaths(node, out){
+  for(const child of node.children.values()){
+    if(child.dir){
+      out.add(child.path);
+      collectDirectoryPaths(child, out);
+    }
+  }
+}
+$("expandAll").onclick=()=>{
+  opened=new Set();
+  if(treeRoot) collectDirectoryPaths(treeRoot, opened);
+  renderTree();
+};
+$("collapseAll").onclick=()=>{
+  opened.clear();
+  renderTree();
+};
 $("closePreview").onclick=()=>{$("previewCard").style.display="none";revokePreview()};
 $("batchSearch").addEventListener("input",renderBatch);
 $("selectVisible").onclick=()=>{const q=$("batchSearch").value.toLowerCase();entries.filter(e=>!e.dir&&e.path.toLowerCase().includes(q)).forEach(e=>selected.add(e.path));renderBatch()};
@@ -197,7 +214,11 @@ function renderTree(){
    row.append(icon,label,meta);
    if(n.dir){
     const toggle=document.createElement("button");toggle.className="treeToggle";toggle.textContent=(opened.has(n.path)||q)?"−":"+";toggle.setAttribute("aria-label","フォルダを開閉");
-    toggle.onclick=()=>{opened.has(n.path)?opened.delete(n.path):opened.add(n.path);renderTree()};
+    toggle.onclick=(event)=>{
+      event.stopPropagation();
+      opened.has(n.path)?opened.delete(n.path):opened.add(n.path);
+      renderTree();
+    };
     row.prepend(toggle);row.style.cursor="pointer";row.onclick=e=>{if(e.target!==toggle){opened.has(n.path)?opened.delete(n.path):opened.add(n.path);renderTree()}};
    }else{
     const view=document.createElement("button");view.className="tiny";view.textContent="表示";view.onclick=()=>showPreview(n.entry);
