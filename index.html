@@ -1,104 +1,315 @@
 <!doctype html>
-<html lang="ja"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b0d10"><title>IPA Explorer v3</title>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080b12">
+<title>IPA Explorer // NEBULA</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#0b0d10;color:#f3f5f7;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-main{max-width:950px;margin:auto;padding:24px 15px 60px}h1{font-size:clamp(29px,6vw,42px);margin:0 0 8px}.muted{color:#a4adba;line-height:1.55}
-.drop{position:relative;min-height:210px;padding:25px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;background:#141922;border:2px dashed #596575;border-radius:20px}
-.drop.active{border-color:#82adff;background:#182234}.drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
-.big{font-size:48px}.drop b{font-size:22px}.pill{background:#f3f5f7;color:#111;padding:10px 17px;border-radius:12px;font-weight:bold}
-.status,.card,.panel{display:none;background:#141922;border:1px solid #2d3541;border-radius:14px;margin-top:14px;padding:14px;overflow-wrap:anywhere}
-.status{white-space:pre-wrap}.error{color:#ffc0c0;border-color:#884848}
-.actions{display:none;gap:8px;flex-wrap:wrap;margin:14px 0}input[type=search]{flex:1;min-width:180px;padding:12px;border:1px solid #343c48;border-radius:10px;background:#141922;color:white;font-size:16px}
-button{border:0;border-radius:10px;padding:10px 13px;background:#f3f5f7;color:#111;font-weight:bold}button.secondary{background:#29313d;color:white}
-.row{display:flex;align-items:center;gap:9px;padding:10px 0;border-bottom:1px solid #29313d}.row:last-child{border:0}.name{flex:1;min-width:0;overflow-wrap:anywhere;font-size:14px}.size{font-size:12px;color:#a4adba;white-space:nowrap}.row button{padding:7px 9px;font-size:12px}
-.kv{display:grid;grid-template-columns:130px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid #29313d}.kv:last-child{border:0}pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:55vh;overflow:auto}
-img{max-width:100%;max-height:55vh;margin-top:12px;border-radius:10px}.progress{display:none;height:5px;background:#28303b;margin-top:8px;border-radius:5px;overflow:hidden}.progress span{display:block;height:100%;background:#82adff;width:0}
-@media(max-width:520px){main{padding:18px 12px}.size{display:none}.kv{grid-template-columns:1fr;gap:2px}}
-</style></head><body><main>
-<h1>📦 IPA Explorer <small style="font-size:.45em;color:#9da6b2">v3</small></h1>
-<p class="muted">IPAをブラウザ内で展開して、中身を閲覧・保存します。IPAファイル自体はサーバーに送信しません。</p>
-<label class="drop" id="drop"><input id="file" type="file" accept=".ipa,.zip,application/zip,application/octet-stream">
-<div class="big">📦</div><b>IPAファイルを選択</b><span class="pill">ファイルを開く</span><span class="muted">iPhoneでは「ファイル」アプリからIPAを選んでください</span></label>
-<div id="status" class="status" role="status" aria-live="polite"></div><div class="progress" id="progress"><span id="bar"></span></div>
-<div class="actions" id="actions"><input id="search" type="search" placeholder="ファイル名・パスを検索"><button class="secondary" id="clear">解除</button><button id="savezip">展開内容をZIP保存</button></div>
-<div id="app" class="card"></div><div id="list" class="panel" style="padding:0"></div><div id="preview" class="card"></div>
-<p class="muted" style="font-size:13px;margin-top:18px">大きなIPAはメモリを多く使います。ZIPライブラリの読み込みにインターネット接続が必要です。アプリの署名検証やインストール機能はありません。</p>
+:root{color-scheme:dark;--bg:#080b12;--panel:rgba(19,25,39,.88);--panel2:#111827;--line:#29344a;--muted:#9aa8bd;--text:#eef4ff;--cyan:#71e4ff;--violet:#a994ff;--green:#8bffc9;--red:#ff9eae;--shadow:0 18px 55px #0007}
+*{box-sizing:border-box}html{background:var(--bg);scroll-behavior:smooth}
+body{margin:0;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;background:radial-gradient(ellipse at 10% -5%,#18324b 0,transparent 38%),radial-gradient(ellipse at 95% 12%,#271d4b 0,transparent 34%),var(--bg);min-height:100vh}
+button,input,select{font:inherit}button{cursor:pointer}
+.shell{max-width:1160px;margin:auto;padding:calc(22px + env(safe-area-inset-top)) 15px calc(50px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}
+.brand{display:flex;align-items:center;gap:12px}.logo{width:46px;height:46px;display:grid;place-items:center;border:1px solid #71e4ff66;border-radius:15px;background:linear-gradient(145deg,#71e4ff25,#a994ff20);box-shadow:0 0 30px #71e4ff16;font-size:24px}
+h1{font-size:clamp(23px,5vw,36px);letter-spacing:-.04em;margin:0;font-weight:850}.subbrand{font-size:10px;letter-spacing:.22em;color:var(--cyan);margin-top:3px}
+.badge{border:1px solid #71e4ff44;border-radius:99px;padding:7px 10px;color:var(--cyan);font-size:11px;white-space:nowrap;background:#71e4ff0b}
+.hero{border:1px solid #35445c;border-radius:24px;padding:clamp(18px,4vw,32px);background:linear-gradient(130deg,#151f31ee,#101522e8);box-shadow:var(--shadow);position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;width:230px;height:230px;border:1px solid #71e4ff17;border-radius:50%;right:-90px;top:-130px;box-shadow:0 0 0 25px #71e4ff06,0 0 0 55px #71e4ff04;pointer-events:none}
+.eyebrow{font-size:11px;letter-spacing:.2em;color:var(--cyan);font-weight:800}.hero h2{font-size:clamp(22px,4.5vw,32px);margin:10px 0}.hero p{color:var(--muted);line-height:1.6;margin:0 0 18px;max-width:680px}
+.drop{position:relative;display:flex;align-items:center;gap:16px;padding:20px;border:1.5px dashed #526987;border-radius:18px;background:#080e18aa;min-height:118px;transition:.18s;cursor:pointer}
+.drop.active{border-color:var(--cyan);background:#71e4ff12;box-shadow:0 0 35px #71e4ff12}.drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
+.dropIcon{width:54px;height:54px;flex:0 0 54px;display:grid;place-items:center;border-radius:17px;background:#71e4ff15;border:1px solid #71e4ff38;font-size:26px}
+.drop b{display:block;font-size:17px}.drop small{display:block;color:var(--muted);margin-top:6px;line-height:1.5}
+.primary,.secondary,.tiny{border-radius:12px;border:1px solid transparent;font-weight:750;transition:.15s}
+.primary{background:linear-gradient(100deg,var(--cyan),#a9baff);color:#07111a;padding:12px 17px;box-shadow:0 5px 24px #71e4ff20}
+.secondary{background:#202a3b;color:var(--text);border-color:#394761;padding:10px 13px}
+.tiny{padding:7px 9px;background:#1e293b;border-color:#36445b;color:var(--text);font-size:12px}
+button:disabled{opacity:.4;cursor:not-allowed}
+.status{display:none;margin-top:13px;padding:13px 15px;border:1px solid var(--line);border-radius:14px;background:#0d1420;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5;font-size:13px}
+.status.error{color:var(--red);border-color:#7d4053}.progress{display:none;height:5px;background:#202b3c;border-radius:99px;overflow:hidden;margin-top:10px}.progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--violet));transition:width .15s}
+.workspace{display:none;margin-top:22px}.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:15px}
+.stat{padding:15px;border:1px solid var(--line);border-radius:16px;background:var(--panel);backdrop-filter:blur(18px)}.stat .label{font-size:11px;color:var(--muted);letter-spacing:.08em}.stat .value{font-size:21px;font-weight:850;margin-top:7px;overflow-wrap:anywhere}.stat .value.small{font-size:14px}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding:3px 0 12px;scrollbar-width:none}.tab{white-space:nowrap;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:#111827;color:var(--muted);font-weight:750}.tab.active{color:var(--cyan);border-color:#71e4ff70;background:#71e4ff12}
+.view{display:none}.view.active{display:block}
+.card{border:1px solid var(--line);border-radius:18px;background:var(--panel);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px;backdrop-filter:blur(16px)}
+.cardHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:15px 17px;border-bottom:1px solid var(--line)}.cardHead h3{margin:0;font-size:15px}.cardBody{padding:15px 17px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.search{flex:1;min-width:160px;background:#0b111d;border:1px solid #35445c;border-radius:12px;padding:11px 13px;color:var(--text);font-size:16px;outline:none}.search:focus{border-color:var(--cyan)}
+.tree{padding:8px}.treeRow{display:flex;align-items:center;gap:8px;padding:10px;border-radius:10px;min-height:43px}.treeRow:hover{background:#ffffff08}.treeRow.selected{background:#71e4ff12;outline:1px solid #71e4ff30}.treeLabel{flex:1;min-width:0;overflow-wrap:anywhere;font-size:13px}.treeMeta{font-size:11px;color:var(--muted);white-space:nowrap}.treeChildren{margin-left:15px;border-left:1px solid #344258;padding-left:6px}.treeToggle{width:24px;height:26px;flex:0 0 24px;padding:0;background:transparent;color:var(--muted);border:0}.empty{padding:20px;text-align:center;color:var(--muted)}
+.kv{display:grid;grid-template-columns:minmax(115px,.7fr) 1.3fr;gap:12px;padding:11px 0;border-bottom:1px solid #283348;font-size:13px}.kv:last-child{border:0}.key{color:var(--muted)}.val{overflow-wrap:anywhere;word-break:break-word}.sectionTitle{font-size:12px;color:var(--cyan);letter-spacing:.12em;margin:20px 0 5px}
+.infoGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.infoTile{padding:13px;border-radius:13px;background:#0c1320;border:1px solid #27364d}.infoTile span{display:block;color:var(--muted);font-size:11px}.infoTile b{display:block;margin-top:6px;font-size:14px;overflow-wrap:anywhere}
+.previewWrap{min-height:80px}.previewImage{display:block;max-width:100%;max-height:60vh;object-fit:contain;margin:12px auto;border-radius:12px}.code{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;max-height:65vh;overflow:auto;background:#080d16;border:1px solid #27344a;border-radius:12px;padding:14px;font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace}
+.hex{font:12px/1.7 ui-monospace,monospace;white-space:pre;overflow:auto;background:#080d16;padding:14px;border-radius:12px}
+.checkrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #283348;font-size:13px}.checkrow input{width:18px;height:18px;accent-color:var(--cyan)}
+.notice{color:var(--muted);font-size:12px;line-height:1.65;margin-top:18px}
+.footer{color:#64738a;font-size:10px;text-align:center;letter-spacing:.12em;margin-top:28px}
+@media(max-width:650px){.shell{padding-left:12px;padding-right:12px}.top{align-items:flex-start}.badge{font-size:10px}.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.stat{padding:12px}.stat .value{font-size:18px}.hero{padding:18px}.drop{padding:15px;gap:12px}.dropIcon{width:45px;height:45px;flex-basis:45px}.drop b{font-size:15px}.kv{grid-template-columns:1fr;gap:4px}.infoGrid{grid-template-columns:1fr}.cardHead{padding:13px}.cardBody{padding:13px}}
+</style>
+</head>
+<body>
+<main class="shell">
+  <header class="top">
+    <div class="brand"><div class="logo">⬡</div><div><h1>IPA Explorer</h1><div class="subbrand">NEBULA ARCHIVE ANALYZER / V4</div></div></div>
+    <div class="badge">LOCAL PROCESSING</div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">ARCHIVE INSPECTOR</div>
+    <h2>Explore the inside.</h2>
+    <p>IPAを端末内で展開。アプリ構成、メタデータ、署名関連ファイルを確認して、必要なファイルを保存できます。</p>
+    <label class="drop" id="dropzone">
+      <input id="fileInput" type="file" accept=".ipa,.zip,application/zip,application/octet-stream">
+      <div class="dropIcon">⇧</div><div><b>IPA / ZIPを選択</b><small>タップして「ファイル」から選択。処理はブラウザ内で行われます。</small></div>
+    </label>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <div class="progress" id="progress"><span id="progressBar"></span></div>
+  </section>
+
+  <section class="workspace" id="workspace">
+    <div class="summary">
+      <div class="stat"><div class="label">ARCHIVE</div><div class="value small" id="statName">—</div></div>
+      <div class="stat"><div class="label">ITEMS</div><div class="value" id="statItems">—</div></div>
+      <div class="stat"><div class="label">APP BUNDLE</div><div class="value small" id="statBundle">—</div></div>
+      <div class="stat"><div class="label">SIGNATURE FILES</div><div class="value" id="statSign">—</div></div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="files">ファイル</button>
+      <button class="tab" data-tab="app">アプリ情報</button>
+      <button class="tab" data-tab="sign">署名情報</button>
+      <button class="tab" data-tab="batch">一括保存</button>
+    </nav>
+
+    <section class="view active" id="view-files">
+      <div class="card">
+        <div class="cardHead"><h3>ファイルブラウザー</h3><span class="badge" id="fileBadge">TREE</span></div>
+        <div class="cardBody">
+          <div class="toolbar"><input class="search" id="fileSearch" type="search" placeholder="ファイル名・パスを検索"><button class="secondary" id="clearSearch">解除</button><button class="secondary" id="expandAll">全展開</button><button class="secondary" id="collapseAll">全折りたたみ</button></div>
+          <div class="muted" id="treeHint" style="font-size:12px;margin-bottom:8px">フォルダをタップして開く。ファイルを選ぶとプレビューできます。</div>
+          <div class="tree" id="tree"></div>
+        </div>
+      </div>
+      <div class="card" id="previewCard" style="display:none">
+        <div class="cardHead"><h3>ファイルプレビュー</h3><button class="tiny" id="closePreview">閉じる</button></div>
+        <div class="cardBody previewWrap" id="preview"></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-app">
+      <div class="card"><div class="cardHead"><h3>アプリメタデータ</h3><span class="badge">INFO.PLIST</span></div><div class="cardBody" id="appInfo"><div class="empty">Info.plistが見つかりません。</div></div></div>
+    </section>
+
+    <section class="view" id="view-sign">
+      <div class="card"><div class="cardHead"><h3>署名関連ファイル</h3><span class="badge">READ-ONLY</span></div><div class="cardBody" id="signInfo"></div></div>
+      <div class="card"><div class="cardHead"><h3>署名検証について</h3></div><div class="cardBody muted" style="font-size:13px;line-height:1.7">このビューアはIPA内の_CodeSignature、CodeResources、embedded.mobileprovision、証明書らしきファイルなどを検出して表示します。存在を確認するだけで、Appleの信頼チェーン、署名の完全性、プロビジョニングの有効性、インストール可能性を検証するものではありません。</div></div>
+    </section>
+
+    <section class="view" id="view-batch">
+      <div class="card"><div class="cardHead"><h3>複数ファイルの一括保存</h3><span class="badge" id="selectedCount">0 SELECTED</span></div><div class="cardBody">
+        <div class="toolbar"><input class="search" id="batchSearch" type="search" placeholder="ファイルを絞り込む"><button class="secondary" id="selectVisible">表示中を選択</button><button class="secondary" id="unselectAll">全解除</button></div>
+        <div id="batchList"></div>
+        <div class="toolbar" style="margin-top:14px"><button class="primary" id="downloadSelected">選択ファイルをZIP保存</button><button class="secondary" id="downloadAll">全内容をZIP保存</button></div>
+        <p class="notice">一括ZIPの作成には、選択したファイル分のメモリと処理時間が必要です。iPhoneでは小さな単位で保存することをおすすめします。</p>
+      </div></div>
+    </section>
+  </section>
+
+  <p class="notice">プライバシー：このページは選択されたIPAをサーバーへアップロードしません。ZIP処理ライブラリ(JSZip)はCDNから読み込まれます。大容量ファイルは端末のメモリ制限により処理できない場合があります。</p>
+  <div class="footer">NEBULA ARCHIVE TOOLS · GITHUB PAGES EDITION</div>
 </main>
+
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>
 (()=>{"use strict";
-const $=id=>document.getElementById(id),input=$("file"),drop=$("drop"),status=$("status"),actions=$("actions"),list=$("list"),app=$("app"),preview=$("preview"),search=$("search"),progress=$("progress"),bar=$("bar");
-let zip=null,items=[],source=null,objectUrl=null;
-function say(s,err=false){status.style.display="block";status.className="status"+(err?" error":"");status.textContent=s}
-function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function size(n){return n<1024?n+" B":n<1048576?(n/1024).toFixed(1)+" KB":(n/1048576).toFixed(2)+" MB"}
-input.addEventListener("change",()=>{if(input.files&&input.files[0])openFile(input.files[0])});
-["dragover","dragenter"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add("active")}));
+const $=id=>document.getElementById(id);
+const input=$("fileInput"),drop=$("dropzone"),status=$("status"),progress=$("progress"),bar=$("progressBar");
+let zip=null,sourceFile=null,entries=[],entryMap=new Map(),treeRoot=null,plistData={},selected=new Set(),opened=new Set(),currentObjectURL=null;
+const signPattern=/(^|\/)(_CodeSignature\/|CodeResources$|embedded\.mobileprovision$|\.cer$|\.der$|\.p12$|\.provisionprofile$)/i;
+
+function msg(text,error=false){status.style.display="block";status.className="status"+(error?" error":"");status.textContent=text}
+function prog(n){progress.style.display="block";bar.style.width=Math.max(0,Math.min(100,n))+"%"}
+function hideProg(){progress.style.display="none";bar.style.width="0"}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function fmt(n){if(!Number.isFinite(n))return "—";if(n<1024)return n+" B";if(n<1048576)return(n/1024).toFixed(1)+" KB";return(n/1048576).toFixed(2)+" MB"}
+function leaf(path){return path.split("/").filter(Boolean).pop()||path}
+function isText(path){return /\.(txt|json|xml|plist|strings|csv|md|html|css|js|swift|m|h|entitlements|log|yaml|yml|toml|sh)$/i.test(path)}
+function isImage(path){return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(path)}
+function setTab(tab){document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+tab))}
+$("tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b)setTab(b.dataset.tab)});
+input.addEventListener("change",()=>{if(input.files&&input.files[0])load(input.files[0])});
+["dragenter","dragover"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add("active")}));
 ["dragleave","drop"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove("active")}));
-drop.addEventListener("drop",e=>{const f=e.dataTransfer?.files?.[0];if(f)openFile(f)});
-$("clear").onclick=()=>{search.value="";render()};search.addEventListener("input",render);
-async function openFile(file){
-source=file;zip=null;items=[];actions.style.display="none";list.style.display="none";app.style.display="none";preview.style.display="none";
-if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null}
-if(!window.JSZip){say("ZIPライブラリを読み込めません。ネット接続を確認し、Safariでページを再読み込みしてください。CDNがコンテンツブロッカーで遮断されている可能性があります。",true);return}
-say("読み込み中…\n"+file.name+" ("+size(file.size)+")");progress.style.display="block";bar.style.width="15%";
-try{
-const buf=await file.arrayBuffer();bar.style.width="40%";zip=await JSZip.loadAsync(buf);
-zip.forEach((path,obj)=>items.push({path,obj,dir:obj.dir,size:obj.dir?0:(obj._data?.uncompressedSize||0)}));
-items.sort((a,b)=>a.path.localeCompare(b.path));bar.style.width="75%";render();actions.style.display="flex";list.style.display="block";await appInfo();
-bar.style.width="100%";say("読み込み完了\n"+file.name+"\n"+items.length+" 項目");setTimeout(()=>progress.style.display="none",600)
-}catch(e){console.error(e);progress.style.display="none";say("展開できませんでした。IPA/ZIPの破損、または未対応の圧縮方式の可能性があります。\n詳細: "+(e.message||e),true)}
+drop.addEventListener("drop",e=>{const f=e.dataTransfer?.files?.[0];if(f)load(f)});
+$("clearSearch").onclick=()=>{$("fileSearch").value="";renderTree()};
+$("fileSearch").addEventListener("input",renderTree);
+$("expandAll").onclick=()=>{opened=new Set(entries.filter(e=>e.dir).map(e=>e.path));renderTree()};
+$("collapseAll").onclick=()=>{opened.clear();renderTree()};
+$("closePreview").onclick=()=>{$("previewCard").style.display="none";revokePreview()};
+$("batchSearch").addEventListener("input",renderBatch);
+$("selectVisible").onclick=()=>{const q=$("batchSearch").value.toLowerCase();entries.filter(e=>!e.dir&&e.path.toLowerCase().includes(q)).forEach(e=>selected.add(e.path));renderBatch()};
+$("unselectAll").onclick=()=>{selected.clear();renderBatch()};
+$("downloadSelected").onclick=()=>makeZip(entries.filter(e=>selected.has(e.path)),"selected_files.zip");
+$("downloadAll").onclick=()=>makeZip(entries.filter(e=>!e.dir),(sourceFile?.name||"archive.ipa").replace(/\.(ipa|zip)$/i,"")+"_contents.zip");
+
+async function load(file){
+  sourceFile=file;zip=null;entries=[];entryMap.clear();selected.clear();opened.clear();plistData={};revokePreview();
+  $("workspace").style.display="none";$("previewCard").style.display="none";
+  if(!window.JSZip){msg("JSZipを読み込めませんでした。インターネット接続とCDNへのアクセスを確認してページを再読み込みしてください。",true);return}
+  if(!/\.(ipa|zip)$/i.test(file.name)){msg("IPAまたはZIPファイルを選択してください。",true);return}
+  msg("読み込み中…\n"+file.name+" ("+fmt(file.size)+")");prog(8);
+  try{
+    const buf=await file.arrayBuffer();prog(25);
+    zip=await JSZip.loadAsync(buf,{checkCRC32:false});
+    zip.forEach((path,obj)=>entries.push({path,obj,dir:obj.dir,size:obj.dir?0:(obj._data?.uncompressedSize||0)}));
+    entries.sort((a,b)=>a.path.localeCompare(b.path));
+    entries.forEach(e=>entryMap.set(e.path,e));
+    prog(55);treeRoot=buildTree(entries);opened.add("");
+    $("workspace").style.display="block";
+    $("statName").textContent=file.name;$("statItems").textContent=entries.length.toLocaleString();
+    $("statBundle").textContent=entries.some(e=>/Payload\/[^/]+\.app\//i.test(e.path))?"検出":"未検出";
+    $("statSign").textContent=entries.filter(e=>signPattern.test(e.path)).length;
+    renderTree();renderBatch();await readAppInfo();renderSignInfo();
+    prog(100);msg("読み込み完了\n"+file.name+"\n"+entries.length+" 項目");setTimeout(hideProg,700);
+  }catch(err){console.error(err);hideProg();msg("読み込みに失敗しました。破損したZIP、非対応の圧縮方式、またはメモリ不足の可能性があります。\n詳細: "+(err?.message||err),true)}
 }
-function render(){
-const q=search.value.trim().toLowerCase(),found=items.filter(x=>x.path.toLowerCase().includes(q)),shown=found.slice(0,1500);
-list.innerHTML="<div style='padding:12px 14px;color:#a4adba;font-size:13px;border-bottom:1px solid #29313d'>"+found.length+" 件（最大1500件表示）</div>";
-if(!shown.length){list.innerHTML+="<div class='row' style='padding:14px'>一致するファイルなし</div>";return}
-for(const x of shown){const row=document.createElement("div");row.className="row";row.style.padding="10px 12px";
-const icon=document.createElement("span");icon.textContent=x.dir?"📁":"📄";
-const name=document.createElement("div");name.className="name";name.textContent=x.path;row.append(icon,name);
-if(!x.dir){const sz=document.createElement("span");sz.className="size";sz.textContent=size(x.size);row.append(sz);
-const view=document.createElement("button");view.className="secondary";view.textContent="表示";view.onclick=()=>showPreview(x);
-const dl=document.createElement("button");dl.className="secondary";dl.textContent="保存";dl.onclick=()=>download(x);row.append(view,dl)}
-list.append(row)}
+
+function buildTree(items){
+ const root={name:"",path:"",dir:true,children:new Map(),entry:null};
+ for(const e of items){
+   const parts=e.path.split("/").filter(Boolean);let node=root,path="";
+   parts.forEach((part,i)=>{path+=(path?"/":"")+part;let child=node.children.get(part);if(!child){child={name:part,path,dir:i<parts.length-1||e.dir,children:new Map(),entry:null};node.children.set(part,child)}if(i===parts.length-1&&!e.dir){child.entry=e;child.dir=false}node=child});
+ }
+ return root;
 }
-async function download(x){try{const blob=await x.obj.async("blob"),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=x.path.split("/").pop()||"file";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);say("保存を開始しました。見つからない場合はSafariのダウンロード一覧または「ファイル」アプリを確認してください。")}catch(e){say("保存エラー: "+e.message,true)}}
-async function showPreview(x){
-if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null}preview.style.display="block";preview.textContent="プレビューを読み込み中…";
-try{if(/\.(png|jpe?g|gif|webp|bmp)$/i.test(x.path)){objectUrl=URL.createObjectURL(await x.obj.async("blob"));preview.innerHTML="<b>"+esc(x.path)+"</b><br><img src='"+objectUrl+"' alt='preview'>"}
-else if(/\.(txt|json|xml|plist|strings|csv|md|html|css|js|swift|m|h|entitlements)$/i.test(x.path)){const t=await x.obj.async("text");preview.innerHTML="<b>"+esc(x.path)+"</b><pre>"+esc(t.slice(0,100000))+(t.length>100000?"\n…表示上限":"")+"</pre>"}
-else preview.innerHTML="<b>"+esc(x.path)+"</b><p class='muted'>この形式はプレビューできません。保存ボタンで取り出せます。</p>";
-preview.scrollIntoView({behavior:"smooth",block:"nearest"})
-}catch(e){preview.textContent="プレビューエラー: "+e.message}
+function renderTree(){
+ const root=$("tree");root.replaceChildren();if(!treeRoot)return;
+ const q=$("fileSearch").value.trim().toLowerCase();
+ const frag=document.createDocumentFragment();
+ function hasMatch(n){if(!q)return true;if(n.path.toLowerCase().includes(q))return true;for(const c of n.children.values())if(hasMatch(c))return true;return false}
+ function draw(node,container,depth){
+  const children=[...node.children.values()].sort((a,b)=>Number(b.dir)-Number(a.dir)||a.name.localeCompare(b.name));
+  for(const n of children){
+   if(q&&!hasMatch(n))continue;
+   const row=document.createElement("div");row.className="treeRow";
+   const icon=document.createElement("span");icon.textContent=n.dir?"▰":"·";icon.style.color=n.dir?"var(--cyan)":"var(--violet)";
+   const label=document.createElement("div");label.className="treeLabel";label.textContent=n.name;
+   const meta=document.createElement("span");meta.className="treeMeta";meta.textContent=n.dir?"DIR":fmt(n.entry?.size||0);
+   row.append(icon,label,meta);
+   if(n.dir){
+    const toggle=document.createElement("button");toggle.className="treeToggle";toggle.textContent=(opened.has(n.path)||q)?"−":"+";toggle.setAttribute("aria-label","フォルダを開閉");
+    toggle.onclick=()=>{opened.has(n.path)?opened.delete(n.path):opened.add(n.path);renderTree()};
+    row.prepend(toggle);row.style.cursor="pointer";row.onclick=e=>{if(e.target!==toggle){opened.has(n.path)?opened.delete(n.path):opened.add(n.path);renderTree()}};
+   }else{
+    const view=document.createElement("button");view.className="tiny";view.textContent="表示";view.onclick=()=>showPreview(n.entry);
+    const save=document.createElement("button");save.className="tiny";save.textContent="保存";save.onclick=()=>downloadEntry(n.entry);
+    row.append(view,save);row.onclick=()=>showPreview(n.entry);
+   }
+   container.append(row);
+   if(n.dir&&n.children.size&&(opened.has(n.path)||q)){const sub=document.createElement("div");sub.className="treeChildren";draw(n,sub,depth+1);container.append(sub)}
+  }
+ }
+ draw(treeRoot,frag,0);root.append(frag);
+ if(!root.children.length)root.innerHTML='<div class="empty">一致する項目がありません。</div>';
 }
-async function appInfo(){
-const x=items.find(x=>!x.dir&&/(^|\/)Info\.plist$/i.test(x.path));if(!x)return;
-try{const b=new Uint8Array(await x.obj.async("uint8array")),d=parsePlist(b),fields=[["アプリ名",d.CFBundleDisplayName||d.CFBundleName],["Bundle ID",d.CFBundleIdentifier],["バージョン",d.CFBundleShortVersionString],["Build",d.CFBundleVersion],["最低iOS",d.MinimumOSVersion],["plist",x.path]].filter(a=>a[1]!=null&&a[1]!=="");
-if(fields.length){app.style.display="block";app.innerHTML="<b>📱 アプリ情報</b>"+fields.map(a=>"<div class='kv'><span class='muted'>"+esc(a[0])+"</span><span>"+esc(Array.isArray(a[1])?a[1].join(", "):a[1])+"</span></div>").join("")}
-}catch(e){console.warn("plist parse",e)}
+async function downloadEntry(e){
+ try{msg("ファイルを準備中…");const blob=await e.obj.async("blob");saveBlob(blob,leaf(e.path));msg("ファイルの保存を開始しました。Safariのダウンロード一覧または「ファイル」アプリを確認してください。")}
+ catch(err){msg("保存に失敗しました: "+err.message,true)}
 }
-function parsePlist(b){if(new TextDecoder().decode(b.slice(0,8))==="bplist00")return binaryPlist(b);
-const doc=new DOMParser().parseFromString(new TextDecoder().decode(b),"application/xml"),root=doc.querySelector("plist")?.firstElementChild;return xmlVal(root)}
-function xmlVal(n){if(!n)return{};if(n.tagName==="dict"){let o={},c=n.firstElementChild;while(c&&c.tagName==="key"){let k=c.textContent;c=c.nextElementSibling;if(!c)break;o[k]=xmlVal(c);c=c.nextElementSibling}return o}if(n.tagName==="array")return [...n.children].map(xmlVal);if(n.tagName==="true")return true;if(n.tagName==="false")return false;return n.textContent||""}
-function uint(b,p,l){let n=0;for(let i=0;i<l;i++)n=n*256+(b[p+i]||0);return n}
-function binaryPlist(b){
-const n=b.length,t=n-32,os=b[t+6],rs=b[t+7],count=uint(b,t+8,8),top=uint(b,t+16,8),table=uint(b,t+24,8);if(!os||!rs||count>100000||table>=n)throw Error("plist trailer invalid");
-const offsets=Array.from({length:count},(_,i)=>uint(b,table+i*os,os)),cache=new Map(),busy=new Set();
-function len(p,i){if(i<15)return[i,p];const m=b[p++],bytes=1<<(m&15);return[uint(b,p,bytes),p+bytes]}
-function obj(id){if(cache.has(id))return cache.get(id);if(busy.has(id)||id<0||id>=count)return null;busy.add(id);let p=offsets[id],m=b[p++],ty=m>>4,i=m&15,v=null;
-if(ty===0)v=i===8?false:i===9?true:null;
-else if(ty===1)v=uint(b,p,1<<i);
-else if(ty===2){let bytes=1<<i;v=bytes===4?new DataView(b.buffer,b.byteOffset+p,4).getFloat32(0):bytes===8?new DataView(b.buffer,b.byteOffset+p,8).getFloat64(0):null}
-else if(ty===5||ty===6){let [l,s]=len(p,i);if(ty===5)v=new TextDecoder().decode(b.slice(s,s+l));else{v="";for(let j=0;j<l;j++)v+=String.fromCharCode(uint(b,s+j*2,2))}}
-else if(ty===10||ty===12){let[l,s]=len(p,i);v=[];for(let j=0;j<l;j++)v.push(obj(uint(b,s+j*rs,rs)))}
-else if(ty===13){let[l,s]=len(p,i),vs=s+l*rs;v={};for(let j=0;j<l;j++)v[obj(uint(b,s+j*rs,rs))]=obj(uint(b,vs+j*rs,rs))}
-busy.delete(id);cache.set(id,v);return v}
-return obj(top)||{}
+function saveBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000)}
+function revokePreview(){if(currentObjectURL){URL.revokeObjectURL(currentObjectURL);currentObjectURL=null}}
+async function showPreview(e){
+ revokePreview();$("previewCard").style.display="block";const box=$("preview");box.replaceChildren();
+ const title=document.createElement("div");title.className="sectionTitle";title.textContent=e.path;box.append(title);
+ const actions=document.createElement("div");actions.className="toolbar";
+ const dl=document.createElement("button");dl.className="secondary";dl.textContent="このファイルを保存";dl.onclick=()=>downloadEntry(e);actions.append(dl);box.append(actions);
+ try{
+  if(isImage(e.path)){
+   const blob=await e.obj.async("blob");currentObjectURL=URL.createObjectURL(blob);
+   if(/\.svg$/i.test(e.path)){const text=await e.obj.async("text");const pre=document.createElement("pre");pre.className="code";pre.textContent=text.slice(0,50000);box.append(pre)}
+   const img=document.createElement("img");img.className="previewImage";img.src=currentObjectURL;img.alt=leaf(e.path);box.append(img);
+  }else if(isText(e.path)){
+   const text=await e.obj.async("text");
+   if(/\.json$/i.test(e.path)){try{const pretty=JSON.stringify(JSON.parse(text),null,2);appendCode(box,pretty)}catch{appendCode(box,text)}}
+   else appendCode(box,text);
+   if(/\.plist$/i.test(e.path)){try{const parsed=parsePlist(new TextEncoder().encode(text));const pre=document.createElement("pre");pre.className="code";pre.textContent="解析したplistオブジェクト\n"+JSON.stringify(parsed,null,2);box.append(pre)}catch{}}
+  }else{
+   const blob=await e.obj.async("blob");const bytes=new Uint8Array(await blob.arrayBuffer());appendCode(box,hexDump(bytes));
+  }
+  $("previewCard").scrollIntoView({behavior:"smooth",block:"start"});
+ }catch(err){appendCode(box,"プレビュー失敗: "+(err.message||err))}
 }
-$("savezip").onclick=async()=>{if(!zip)return;const b=$("bar");progress.style.display="block";b.style.width="0";$("savezip").disabled=true;say("ZIPを作成しています…");
-try{const blob=await zip.generateAsync({type:"blob"},m=>b.style.width=m.percent+"%"),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=(source?.name||"ipa").replace(/\.(ipa|zip)$/i,"")+"_contents.zip";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);say("ZIPを作成しました。Safariのダウンロード一覧を確認してください。")}
-catch(e){say("ZIP作成エラー: "+e.message,true)}finally{$("savezip").disabled=false;setTimeout(()=>progress.style.display="none",700)}};
-window.addEventListener("load",()=>{if(!window.JSZip)say("JSZipを読み込めません。通信を確認して再読み込みしてください。",true)});
+function appendCode(box,text){const pre=document.createElement("pre");pre.className="code";pre.textContent=text.length>200000?text.slice(0,200000)+"\n\n…表示上限（200KB相当）":text;box.append(pre)}
+function hexDump(b){let out="OFFSET   HEX                                              ASCII\n";for(let i=0;i<Math.min(b.length,4096);i+=16){const slice=b.slice(i,i+16),hex=[...slice].map(x=>x.toString(16).padStart(2,"0")).join(" ").padEnd(47," ");const asc=[...slice].map(x=>x>=32&&x<127?String.fromCharCode(x):".").join("");out+=i.toString(16).padStart(8,"0")+"  "+hex+"  "+asc+"\n"}if(b.length>4096)out+="\n…先頭4096バイトを表示";return out}
+
+async function readAppInfo(){
+ const item=entries.find(e=>!e.dir&&/(^|\/)Info\.plist$/i.test(e.path)&&/Payload\/[^/]+\.app\//i.test(e.path))||entries.find(e=>!e.dir&&/(^|\/)Info\.plist$/i.test(e.path));
+ const box=$("appInfo");if(!item){box.innerHTML='<div class="empty">Info.plistが見つかりません。</div>';return}
+ try{
+  const bytes=new Uint8Array(await item.obj.async("uint8array"));plistData=parsePlist(bytes);
+  const d=plistData,known=[
+   ["表示名",d.CFBundleDisplayName],["アプリ名",d.CFBundleName],["Bundle ID",d.CFBundleIdentifier],
+   ["短縮バージョン",d.CFBundleShortVersionString],["Build番号",d.CFBundleVersion],
+   ["最低iOS",d.MinimumOSVersion],["対応プラットフォーム",d.CFBundleSupportedPlatforms],
+   ["実行ファイル",d.CFBundleExecutable],["パッケージタイプ",d.CFBundlePackageType],
+   ["デバイスファミリー",d.UIDeviceFamily],["暗号化フラグ",d.cryptid],["Info.plistの場所",item.path]
+  ].filter(x=>x[1]!==undefined);
+  box.innerHTML='<div class="infoGrid">'+known.slice(0,4).map(([k,v])=>'<div class="infoTile"><span>'+esc(k)+'</span><b>'+esc(valueString(v))+'</b></div>').join("")+'</div>'+
+   '<div class="sectionTitle">BUNDLE METADATA</div>'+known.slice(4).map(([k,v])=>'<div class="kv"><div class="key">'+esc(k)+'</div><div class="val">'+esc(valueString(v))+'</div></div>').join("")+
+   '<div class="sectionTitle">追加キー（plist内の全キー）</div><div id="allKeys"></div>';
+  const all=$("allKeys");Object.keys(d).sort().forEach(k=>{const r=document.createElement("div");r.className="kv";const a=document.createElement("div");a.className="key";a.textContent=k;const b=document.createElement("div");b.className="val";b.textContent=valueString(d[k]);r.append(a,b);all.append(r)});
+ }catch(err){box.innerHTML='<div class="empty">Info.plistを解析できませんでした: '+esc(err.message||err)+'</div>'}
+}
+function valueString(v){if(v&&typeof v==="object")return JSON.stringify(v);return String(v)}
+function renderSignInfo(){
+ const matches=entries.filter(e=>!e.dir&&signPattern.test(e.path));const box=$("signInfo");
+ if(!matches.length){box.innerHTML='<div class="empty">署名関連のファイルは見つかりませんでした。これは署名が存在しないことの証明ではありません。</div>';return}
+ box.innerHTML='<p class="muted" style="font-size:13px">検出した項目: '+matches.length+' 件</p>';
+ matches.forEach(e=>{const row=document.createElement("div");row.className="kv";const k=document.createElement("div");k.className="key";k.textContent=e.path;const v=document.createElement("div");v.className="val";v.textContent=fmt(e.size)+" · "+(e.path.includes("_CodeSignature")?"コード署名関連":/mobileprovision/i.test(e.path)?"プロビジョニングプロファイル":/\.cer$|\.der$|\.p12$/i.test(e.path)?"証明書・鍵関連ファイル":"署名リソース");const btn=document.createElement("button");btn.className="tiny";btn.textContent="保存";btn.onclick=()=>downloadEntry(e);v.append(document.createElement("br"),btn);row.append(k,v);box.append(row)});
+}
+function renderBatch(){
+ const q=$("batchSearch").value.trim().toLowerCase(),found=entries.filter(e=>!e.dir&&e.path.toLowerCase().includes(q));
+ $("selectedCount").textContent=selected.size+" SELECTED";const box=$("batchList");box.replaceChildren();
+ found.slice(0,500).forEach(e=>{const row=document.createElement("label");row.className="checkrow";const cb=document.createElement("input");cb.type="checkbox";cb.checked=selected.has(e.path);cb.onchange=()=>{cb.checked?selected.add(e.path):selected.delete(e.path);$("selectedCount").textContent=selected.size+" SELECTED"};const name=document.createElement("span");name.style.flex="1";name.style.overflowWrap="anywhere";name.textContent=e.path;const size=document.createElement("span");size.className="treeMeta";size.textContent=fmt(e.size);row.append(cb,name,size);box.append(row)});
+ if(found.length>500){const n=document.createElement("div");n.className="notice";n.textContent="表示は先頭500件です。検索で絞り込んでください。";box.append(n)}
+ if(!found.length)box.innerHTML='<div class="empty">該当するファイルはありません。</div>';
+ $("selectedCount").textContent=selected.size+" SELECTED";
+}
+async function makeZip(list,name){
+ if(!zip||!list.length){msg("ZIPにするファイルを選択してください。",true);return}
+ $("downloadSelected").disabled=true;$("downloadAll").disabled=true;msg("ZIPを作成中…\n対象 "+list.length+" ファイル");prog(0);
+ try{
+  const out=new JSZip();let done=0;
+  for(const e of list){if(!e.dir){const data=await e.obj.async("uint8array");out.file(e.path,data)}done++;prog(done/list.length*70)}
+  const blob=await out.generateAsync({type:"blob",compression:"DEFLATE",compressionOptions:{level:3}},m=>prog(70+m.percent*.3));
+  saveBlob(blob,name);msg("ZIPを作成しました。Safariのダウンロード一覧または「ファイル」アプリを確認してください。");
+ }catch(err){msg("ZIP作成に失敗しました: "+(err.message||err),true)}
+ finally{$("downloadSelected").disabled=false;$("downloadAll").disabled=false;setTimeout(hideProg,800)}
+}
+function parsePlist(bytes){
+ if(new TextDecoder().decode(bytes.slice(0,8))==="bplist00")return parseBinaryPlist(bytes);
+ const doc=new DOMParser().parseFromString(new TextDecoder().decode(bytes),"application/xml");if(doc.querySelector("parsererror"))throw Error("XML plistの構文エラー");return xmlValue(doc.querySelector("plist")?.firstElementChild)
+}
+function xmlValue(n){if(!n)return{};if(n.tagName==="dict"){const o={};let c=n.firstElementChild;while(c&&c.tagName==="key"){const k=c.textContent;c=c.nextElementSibling;if(!c)break;o[k]=xmlValue(c);c=c.nextElementSibling}return o}if(n.tagName==="array")return[...n.children].map(xmlValue);if(n.tagName==="true")return true;if(n.tagName==="false")return false;return n.textContent||""}
+function uint(b,p,l){let x=0;for(let i=0;i<l;i++)x=x*256+(b[p+i]||0);return x}
+function parseBinaryPlist(b){
+ const n=b.length,t=n-32;if(n<40)throw Error("バイナリplistが短すぎます");
+ const os=b[t+6],rs=b[t+7],count=uint(b,t+8,8),top=uint(b,t+16,8),table=uint(b,t+24,8);
+ if(!os||!rs||count>100000||table>=n)throw Error("バイナリplistのトレーラーが不正です");
+ const offsets=Array.from({length:count},(_,i)=>uint(b,table+i*os,os)),cache=new Map(),busy=new Set();
+ function len(p,i){if(i<15)return[i,p];const m=b[p++],bytes=1<<(m&15);return[uint(b,p,bytes),p+bytes]}
+ function obj(id){if(cache.has(id))return cache.get(id);if(busy.has(id)||id<0||id>=count)return null;busy.add(id);let p=offsets[id];if(p>=n)throw Error("plist offset out of range");const m=b[p++],ty=m>>4,i=m&15;let v=null;
+  if(ty===0)v=i===8?false:i===9?true:null;
+  else if(ty===1)v=uint(b,p,1<<i);
+  else if(ty===2){const z=1<<i;v=z===4?new DataView(b.buffer,b.byteOffset+p,4).getFloat32(0,false):z===8?new DataView(b.buffer,b.byteOffset+p,8).getFloat64(0,false):null}
+  else if(ty===5||ty===6){const[l,s]=len(p,i);if(ty===5)v=new TextDecoder().decode(b.slice(s,s+l));else{v="";for(let j=0;j<l;j++)v+=String.fromCharCode(uint(b,s+j*2,2))}}
+  else if(ty===10||ty===12){const[l,s]=len(p,i);v=[];for(let j=0;j<l;j++)v.push(obj(uint(b,s+j*rs,rs)))}
+  else if(ty===13){const[l,s]=len(p,i),vs=s+l*rs;v={};for(let j=0;j<l;j++)v[obj(uint(b,s+j*rs,rs))]=obj(uint(b,vs+j*rs,rs))}
+  busy.delete(id);cache.set(id,v);return v
+ }
+ return obj(top)||{}
+}
+window.addEventListener("load",()=>{if(!window.JSZip)msg("JSZip CDNを読み込めませんでした。インターネット接続またはコンテンツブロッカーを確認してください。",true)});
 })();
-</script></body></html>
+</script>
+</body>
+</html>
